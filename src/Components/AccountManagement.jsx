@@ -99,17 +99,18 @@ function AccountManagement() {
                           onChange={(e) => setEditValue(e.target.value)}
                           className="balance-edit-input"
                         />
-                        <button className="btn-link" onClick={() => saveEdit(a.customerEmail, a.id)}>
+                        <button className="btn-save" onClick={() => saveEdit(a.customerEmail, a.id)}>
                           Save
                         </button>
-                        <button className="btn-link" onClick={cancelEdit}>
+                        <button className="btn-cancel" onClick={cancelEdit}>
                           Cancel
                         </button>
+                        
                       </div>
                     ) : (
                       <>
                         {formatCurrency(a.balance)}{" "}
-                        <button className="btn-link" onClick={() => startEdit(a)}>
+                        <button className="btn-edit" onClick={() => startEdit(a)}>
                           Edit
                         </button>
                       </>
@@ -121,9 +122,11 @@ function AccountManagement() {
                     </span>
                   </td>
                   <td>
-                    <button className="btn-link" onClick={() => handleToggle(a.customerEmail, a.id)}>
-                      {a.status === "Active" ? "Deactivate" : "Activate"}
-                    </button>
+                  
+                      <button className="btn-deactivate" onClick={() => handleToggle(a.customerEmail, a.id)}>
+                        {a.status === "Active" ? "Deactivate" : "Activate"}
+                      </button>
+      
                   </td>
                 </tr>
               ))}

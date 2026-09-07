@@ -2565,6 +2565,66 @@ footer {
   text-decoration: none;
 }
 
+.btn-edit,
+.btn-save,
+.btn-cancel,
+.btn-deactivate {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-left: 8px;
+}
+
+.btn-edit {
+  background: #eef2ff;
+  color: #3b4ff0;
+}
+.btn-edit:hover {
+  background: #dde3ff;
+}
+
+.btn-save {
+  background: #16a34a;
+  color: #fff;
+}
+.btn-save:hover {
+  background: #15803d;
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+}
+.btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+.btn-deactivate {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.btn-deactivate:hover {
+  background: #fee2e2;
+}
+
+.balance-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.balance-edit-input {
+  width: 90px;
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
 
 /* ADMIN SUBTABLE */
 
