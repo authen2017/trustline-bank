@@ -6,6 +6,7 @@ import { isAdminLoggedIn, getAllTransactionsFlat, isSuspicious, formatCurrency }
 function TransactionMonitoring() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [flagOnly, setFlagOnly] = useState(false);
@@ -15,7 +16,21 @@ function TransactionMonitoring() {
       navigate("/admin/login");
       return;
     }
-    setTransactions(getAllTransactionsFlat());
+
+    let isMounted = true;
+    const loadTransactions = async () => {
+      try {
+        const data = await getAllTransactionsFlat();
+        if (isMounted) setTransactions(data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadTransactions();
+    return () => { isMounted = false; };
   }, [navigate]);
 
   const filtered = useMemo(() => {
@@ -33,6 +48,17 @@ function TransactionMonitoring() {
     }
     return list;
   }, [transactions, search, typeFilter, flagOnly]);
+
+  if (loading) {
+    return (
+      <div className="admin-page">
+        <AdminNav />
+        <div className="admin-content">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page">

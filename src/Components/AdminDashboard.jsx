@@ -12,7 +12,19 @@ function AdminDashboard() {
       navigate("/admin/login");
       return;
     }
-    setStats(getSystemStats());
+
+    let isMounted = true;
+    const loadStats = async () => {
+      try {
+        const data = await getSystemStats();
+        if (isMounted) setStats(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadStats();
+    return () => { isMounted = false; };
   }, [navigate]);
 
   if (!stats) return null;

@@ -1,22 +1,57 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { getCurrentUser, updateUser, recordTransaction, formatCurrency } from "../utils/storage";
 
 function PayBill() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(() => getCurrentUser());
-  const [accountId, setAccountId] = useState(user?.accounts?.[0]?.id || "");
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [accountId, setAccountId] = useState("");
   const [payee, setPayee] = useState("");
   const [amount, setAmount] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  if (!user) {
-    navigate("/login");
-    return null;
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      try {
+        const current = await getCurrentUser();
+        if (!isMounted) return;
+
+        if (!current) {
+          navigate("/login");
+          return;
+        }
+        setUser(current);
+        setAccountId(current.accounts?.[0]?.id || "");
+      } catch (err) {
+        console.error(err);
+        navigate("/login");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadUser();
+    return () => { isMounted = false; };
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="content-page">
+        <div className="content-inner">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
   }
 
-  const handleSubmit = (e) => {
+  if (!user) return null;
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     const amt = Number(amount);
@@ -26,14 +61,22 @@ function PayBill() {
     if (!amt || amt <= 0) return setError("Enter a valid amount.");
     if (amt > account.balance) return setError("Insufficient funds.");
 
-    const updatedUser = { ...user, accounts: user.accounts.map((a) => ({ ...a })) };
-    const { transaction } = recordTransaction(updatedUser, {
-      accountId, description: `Bill payment — ${payee}`, type: "debit", amount: amt, counterparty: payee,
-    });
+    setSubmitting(true);
+    try {
+      const updatedUser = { ...user, accounts: user.accounts.map((a) => ({ ...a })) };
+      const { transaction } = recordTransaction(updatedUser, {
+        accountId, description: `Bill payment — ${payee}`, type: "debit", amount: amt, counterparty: payee,
+      });
 
-    updateUser(updatedUser);
-    setUser(updatedUser);
-    setSuccess(transaction);
+      await updateUser(updatedUser);
+      setUser(updatedUser);
+      setSuccess(transaction);
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong paying this bill. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (success) {
@@ -80,7 +123,9 @@ function PayBill() {
               <label>Amount</label>
               <input type="number" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
             </div>
-            <button type="submit" className="content-button">Pay bill</button>
+            <button type="submit" className="content-button" disabled={submitting}>
+              {submitting ? "Processing..." : "Pay bill"}
+            </button>
           </form>
         </div>
         <Link to="/dashboard" className="back-link">← Back to dashboard</Link>

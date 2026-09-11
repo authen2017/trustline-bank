@@ -2506,7 +2506,7 @@ footer {
 
 /* PHONE */
 
-.admin-table td:mnth-child(3) {
+.admin-table td:nth-child(3) {
   font-weight: 600;
 
   color: #34495e;
@@ -3004,4 +3004,58 @@ footer {
 
     gap: 7px;
   }
+}
+
+/* ============================================
+   ADDITIONAL RESPONSIVE FIXES — general app
+   (append to the end of App.css)
+   ============================================ */
+
+@media (max-width: 480px) {
+  /* Dashboard header: long full names can collide with the
+     Log out button since they currently sit side by side */
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .dashboard-header h2 {
+    font-size: 1.2rem;
+    word-break: break-word;
+  }
+
+  /* Account details header: account type + status badge can
+     get tight next to each other on very narrow screens */
+  .account-details-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  /* Account info grid: 2 columns is too tight below 480px,
+     numbers/labels can start touching each other */
+  .account-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Beneficiary table has 5 columns — force horizontal
+     scroll instead of squishing text on small screens */
+  .beneficiary-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* General safety net across the whole app: long emails,
+   names, or account numbers should never force horizontal
+   overflow on narrow screens */
+* {
+  overflow-wrap: break-word;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
 }

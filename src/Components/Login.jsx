@@ -8,24 +8,34 @@ function Login() {
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    const user = findUserByIdentifier(identifier);
+    try {
+      const user = await findUserByIdentifier(identifier);
 
-    if (!user || user.password !== password) {
-      setError("Invalid account/email or password.");
-      return;
+      if (!user || user.password !== password) {
+        setError("Invalid account/email or password.");
+        setLoading(false);
+        return;
+      }
+
+      if (rememberMe) {
+        localStorage.setItem("trustlineRememberedUser", identifier);
+      }
+
+      setPendingUser(user);
+      navigate("/otp");
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong logging in. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    if (rememberMe) {
-      localStorage.setItem("trustlineRememberedUser", identifier);
-    }
-
-    setPendingUser(user);
-    navigate("/otp");
   };
 
   return (
@@ -80,8 +90,8 @@ function Login() {
               <label htmlFor="rememberMe">Remember me</label>
             </div>
 
-            <button type="submit" className="login-button">
-              Login securely →
+            <button type="submit" className="login-button" disabled={loading}>
+              {loading ? "Signing in..." : "Login securely →"}
             </button>
           </form>
 

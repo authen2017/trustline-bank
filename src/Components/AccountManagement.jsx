@@ -12,17 +12,31 @@ import {
 function AccountManagement() {
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const loadAccounts = async () => {
+    try {
+      const data = await getAllAccountsFlat();
+      setAccounts(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!isAdminLoggedIn()) {
       navigate("/admin/login");
       return;
     }
-    setAccounts(getAllAccountsFlat());
+    loadAccounts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const filtered = useMemo(() => {
@@ -33,9 +47,13 @@ function AccountManagement() {
     });
   }, [accounts, typeFilter, statusFilter]);
 
-  const handleToggle = (email, accountId) => {
-    toggleAccountStatus(email, accountId);
-    setAccounts(getAllAccountsFlat());
+  const handleToggle = async (email, accountId) => {
+    try {
+      await toggleAccountStatus(email, accountId);
+      await loadAccounts();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const startEdit = (account) => {
@@ -48,16 +66,36 @@ function AccountManagement() {
     setEditValue("");
   };
 
-  const saveEdit = (email, accountId) => {
+  const saveEdit = async (email, accountId) => {
     const parsed = Number(editValue);
     if (isNaN(parsed) || parsed < 0) {
       alert("Please enter a valid, non-negative number.");
       return;
     }
-    setAccountBalance(email, accountId, parsed);
-    setAccounts(getAllAccountsFlat());
-    cancelEdit();
+
+    setSaving(true);
+    try {
+      await setAccountBalance(email, accountId, parsed);
+      await loadAccounts();
+      cancelEdit();
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong saving this balance. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="admin-page">
+        <AdminNav />
+        <div className="admin-content">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page">
@@ -98,14 +136,14 @@ function AccountManagement() {
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           className="balance-edit-input"
+                          disabled={saving}
                         />
-                        <button className="btn-save" onClick={() => saveEdit(a.customerEmail, a.id)}>
-                          Save
+                        <button className="btn-save" onClick={() => saveEdit(a.customerEmail, a.id)} disabled={saving}>
+                          {saving ? "Saving..." : "Save"}
                         </button>
-                        <button className="btn-cancel" onClick={cancelEdit}>
+                        <button className="btn-cancel" onClick={cancelEdit} disabled={saving}>
                           Cancel
                         </button>
-                        
                       </div>
                     ) : (
                       <>
@@ -122,11 +160,9 @@ function AccountManagement() {
                     </span>
                   </td>
                   <td>
-                  
-                      <button className="btn-deactivate" onClick={() => handleToggle(a.customerEmail, a.id)}>
-                        {a.status === "Active" ? "Deactivate" : "Activate"}
-                      </button>
-      
+                    <button className="btn-deactivate" onClick={() => handleToggle(a.customerEmail, a.id)}>
+                      {a.status === "Active" ? "Deactivate" : "Activate"}
+                    </button>
                   </td>
                 </tr>
               ))}

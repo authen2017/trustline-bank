@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { generateAccountNumber, generateId, getUsers, saveUsers } from "../utils/storage";
+import { generateAccountNumber, generateId, getUserByEmail, createUser } from "../utils/storage";
 
 function Registration() {
   const navigate = useNavigate();
@@ -9,10 +9,11 @@ function Registration() {
   });
   const [error, setError] = useState("");
   const [accounts, setAccounts] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -25,31 +26,40 @@ function Registration() {
       return;
     }
 
-    const users = getUsers();
-    if (users.some((u) => u.email === formData.email)) {
-      setError("An account with this email already exists.");
-      return;
+    setLoading(true);
+    try {
+      const existing = await getUserByEmail(formData.email);
+      if (existing) {
+        setError("An account with this email already exists.");
+        setLoading(false);
+        return;
+      }
+
+      const newAccounts = [
+        { id: generateId("acc"), type: "Current", accountNumber: generateAccountNumber(), balance: 0, status: "Active" },
+        { id: generateId("acc"), type: "Savings", accountNumber: generateAccountNumber(), balance: 0, status: "Active" },
+      ];
+
+      const newUser = {
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        dob: formData.dob,
+        address: formData.address,
+        password: formData.password,
+        accounts: newAccounts,
+        transactions: [],
+        beneficiaries: [],
+      };
+
+      await createUser(newUser);
+      setAccounts(newAccounts);
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong creating your account. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    const newAccounts = [
-      { id: generateId("acc"), type: "Current", accountNumber: generateAccountNumber(), balance: 0, status: "Active" },
-      { id: generateId("acc"), type: "Savings", accountNumber: generateAccountNumber(), balance: 0, status: "Active" },
-    ];
-
-    const newUser = {
-      fullName: formData.fullName,
-      email: formData.email,
-      phone: formData.phone,
-      dob: formData.dob,
-      address: formData.address,
-      password: formData.password,
-      accounts: newAccounts,
-      transactions: [],
-      beneficiaries: [],
-    };
-
-    saveUsers([...users, newUser]);
-    setAccounts(newAccounts);
   };
 
   if (accounts) {
@@ -128,7 +138,9 @@ function Registration() {
             </div>
           </div>
 
-          <button type="submit" className="register-button">Create Account →</button>
+          <button type="submit" className="register-button" disabled={loading}>
+            {loading ? "Creating account..." : "Create Account →"}
+          </button>
         </form>
 
         <div className="register-login-link">
@@ -140,3 +152,4 @@ function Registration() {
 }
 
 export default Registration;
+ 

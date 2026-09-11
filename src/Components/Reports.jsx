@@ -7,24 +7,49 @@ function Reports() {
   const navigate = useNavigate();
   const [dailyActivity, setDailyActivity] = useState([]);
   const [breakdown, setBreakdown] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isAdminLoggedIn()) {
       navigate("/admin/login");
       return;
     }
-    const transactions = getAllTransactionsFlat();
-    setDailyActivity(getDailyActivityLast7Days(transactions));
 
-    const transfers = transactions.filter((t) => t.transferId).length;
-    const deposits = transactions.filter((t) => t.type === "credit" && !t.description.startsWith("Bill payment")).length;
-    const withdrawals = transactions.filter((t) => t.type === "debit" && !t.transferId && !t.description.startsWith("Bill payment")).length;
-    const billPayments = transactions.filter((t) => t.description.startsWith("Bill payment")).length;
+    let isMounted = true;
+    const loadReports = async () => {
+      try {
+        const transactions = await getAllTransactionsFlat();
+        if (!isMounted) return;
 
-    setBreakdown({ transfers, deposits, withdrawals, billPayments });
+        setDailyActivity(getDailyActivityLast7Days(transactions));
+
+        const transfers = transactions.filter((t) => t.transferId).length;
+        const deposits = transactions.filter((t) => t.type === "credit" && !t.description.startsWith("Bill payment")).length;
+        const withdrawals = transactions.filter((t) => t.type === "debit" && !t.transferId && !t.description.startsWith("Bill payment")).length;
+        const billPayments = transactions.filter((t) => t.description.startsWith("Bill payment")).length;
+
+        setBreakdown({ transfers, deposits, withdrawals, billPayments });
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadReports();
+    return () => { isMounted = false; };
   }, [navigate]);
 
-  if (!breakdown) return null;
+  if (loading || !breakdown) {
+    return (
+      <div className="admin-page">
+        <AdminNav />
+        <div className="admin-content">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const maxDaily = Math.max(1, ...dailyActivity.map((d) => d.count));
   const maxBreakdown = Math.max(1, breakdown.transfers, breakdown.deposits, breakdown.withdrawals, breakdown.billPayments);

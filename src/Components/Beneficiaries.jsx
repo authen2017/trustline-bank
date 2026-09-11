@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { getCurrentUser, updateUser, generateId } from "../utils/storage";
 
@@ -8,34 +8,76 @@ function emptyForm() {
 
 function Beneficiaries() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(() => getCurrentUser());
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(emptyForm());
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  if (!user) {
-    navigate("/login");
-    return null;
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      try {
+        const current = await getCurrentUser();
+        if (!isMounted) return;
+
+        if (!current) {
+          navigate("/login");
+          return;
+        }
+        setUser(current);
+      } catch (err) {
+        console.error(err);
+        navigate("/login");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadUser();
+    return () => { isMounted = false; };
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="content-page">
+        <div className="content-inner wide">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
   }
+
+  if (!user) return null;
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
   const resetForm = () => { setForm(emptyForm()); setEditingId(null); };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     if (!form.name || !form.accountNumber || !form.bank) {
       return setError("Name, account number and bank are required.");
     }
 
-    const updatedBeneficiaries = editingId
-      ? (user.beneficiaries || []).map((b) => (b.id === editingId ? { ...b, ...form } : b))
-      : [...(user.beneficiaries || []), { id: generateId("ben"), ...form }];
+    setSubmitting(true);
+    try {
+      const updatedBeneficiaries = editingId
+        ? (user.beneficiaries || []).map((b) => (b.id === editingId ? { ...b, ...form } : b))
+        : [...(user.beneficiaries || []), { id: generateId("ben"), ...form }];
 
-    const updatedUser = { ...user, beneficiaries: updatedBeneficiaries };
-    updateUser(updatedUser);
-    setUser(updatedUser);
-    resetForm();
+      const updatedUser = { ...user, beneficiaries: updatedBeneficiaries };
+      await updateUser(updatedUser);
+      setUser(updatedUser);
+      resetForm();
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong saving this beneficiary. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleEdit = (b) => {
@@ -43,11 +85,16 @@ function Beneficiaries() {
     setEditingId(b.id);
   };
 
-  const handleDelete = (id) => {
-    const updatedUser = { ...user, beneficiaries: (user.beneficiaries || []).filter((b) => b.id !== id) };
-    updateUser(updatedUser);
-    setUser(updatedUser);
-    if (editingId === id) resetForm();
+  const handleDelete = async (id) => {
+    try {
+      const updatedUser = { ...user, beneficiaries: (user.beneficiaries || []).filter((b) => b.id !== id) };
+      await updateUser(updatedUser);
+      setUser(updatedUser);
+      if (editingId === id) resetForm();
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong deleting this beneficiary. Please try again.");
+    }
   };
 
   return (
@@ -76,8 +123,10 @@ function Beneficiaries() {
               <input type="text" name="nickname" value={form.nickname} onChange={handleChange} />
             </div>
             <div className="button-row">
-              <button type="submit" className="content-button">{editingId ? "Save changes" : "Add beneficiary"}</button>
-              {editingId && <button type="button" className="content-button secondary" onClick={resetForm}>Cancel</button>}
+              <button type="submit" className="content-button" disabled={submitting}>
+                {submitting ? "Saving..." : editingId ? "Save changes" : "Add beneficiary"}
+              </button>
+              {editingId && <button type="button" className="content-button secondary" onClick={resetForm} disabled={submitting}>Cancel</button>}
             </div>
           </form>
         </div>

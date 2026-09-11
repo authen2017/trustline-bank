@@ -1,16 +1,49 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getCurrentUser, formatCurrency } from "../utils/storage";
 
 function AccountDetails() {
   const { accountId } = useParams();
   const navigate = useNavigate();
-  const user = getCurrentUser();
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  if (!user) {
-    navigate("/login");
-    return null;
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      try {
+        const current = await getCurrentUser();
+        if (!isMounted) return;
+
+        if (!current) {
+          navigate("/login");
+          return;
+        }
+        setUser(current);
+      } catch (err) {
+        console.error(err);
+        navigate("/login");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadUser();
+    return () => { isMounted = false; };
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="account-details-page">
+        <div className="account-details-inner">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
   }
+
+  if (!user) return null;
 
   const account = user.accounts.find((a) => a.id === accountId);
   if (!account) {

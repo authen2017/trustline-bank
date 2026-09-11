@@ -1,8 +1,16 @@
-const USERS_KEY = "trustlineUsers";
+import { db } from "./firebase";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  getDocs,
+} from "firebase/firestore";
+
 const CURRENT_USER_KEY = "trustlineCurrentUser";
 const PENDING_USER_KEY = "trustlinePendingUser";
 
-// custumer
+// ---------- ID HELPERS (unchanged, no storage involved) ----------
 
 export function generateAccountNumber() {
   return Math.floor(1000000000 + Math.random() * 9000000000).toString();
@@ -12,22 +20,45 @@ export function generateId(prefix = "id") {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 }
 
-export function getUsers() {
-  return JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
+// ---------- CORE USER STORAGE (now Firestore) ----------
+// Each user document lives at: users/{email}
+
+export async function getUsers() {
+  const snap = await getDocs(collection(db, "users"));
+  return snap.docs.map((d) => d.data());
 }
 
-export function saveUsers(users) {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+export async function getUserByEmail(email) {
+  const snap = await getDoc(doc(db, "users", email));
+  return snap.exists() ? snap.data() : null;
 }
 
-export function findUserByIdentifier(identifier) {
-  const users = getUsers();
-  return users.find(
-    (u) =>
-      u.email === identifier ||
+export async function createUser(newUser) {
+  await setDoc(doc(db, "users", newUser.email), newUser);
+  return newUser;
+}
+
+export async function updateUser(updatedUser) {
+  await setDoc(doc(db, "users", updatedUser.email), updatedUser);
+  setCurrentUser(updatedUser);
+  return updatedUser;
+}
+
+export async function findUserByIdentifier(identifier) {
+  // Try as a direct email lookup first (fast path)
+  const direct = await getUserByEmail(identifier);
+  if (direct) return direct;
+
+  // Otherwise, search all users for a matching account number
+  const users = await getUsers();
+  return (
+    users.find((u) =>
       (u.accounts || []).some((a) => a.accountNumber === identifier)
+    ) || null
   );
 }
+
+// ---------- SESSION (stays in localStorage — this is per-device, not shared data) ----------
 
 export function setPendingUser(user) {
   localStorage.setItem(PENDING_USER_KEY, JSON.stringify(user));
@@ -46,14 +77,13 @@ export function setCurrentUser(user) {
   localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
 }
 
-export function getCurrentUser() {
+export async function getCurrentUser() {
   const raw = localStorage.getItem(CURRENT_USER_KEY);
   if (!raw) return null;
   const stored = JSON.parse(raw);
-  // Re-fetch the freshest copy from the users list in case another
-  // page updated balances/transactions since login.
-  const users = getUsers();
-  const fresh = users.find((u) => u.email === stored.email);
+  // Re-fetch the freshest copy from Firestore in case another
+  // device/admin updated balances/transactions since login.
+  const fresh = await getUserByEmail(stored.email);
   return fresh || stored;
 }
 
@@ -61,15 +91,7 @@ export function logout() {
   localStorage.removeItem(CURRENT_USER_KEY);
 }
 
-export function updateUser(updatedUser) {
-  const users = getUsers();
-  const index = users.findIndex((u) => u.email === updatedUser.email);
-  if (index !== -1) {
-    users[index] = updatedUser;
-    saveUsers(users);
-  }
-  setCurrentUser(updatedUser);
-}
+// ---------- ACCOUNT / TRANSACTION HELPERS (pure functions, unchanged) ----------
 
 export function getAccountById(user, accountId) {
   return (user.accounts || []).find((a) => a.id === accountId);
@@ -82,8 +104,8 @@ export function getAllTransactions(user) {
 }
 
 // Mutates the account balance on `user` and appends a transaction record.
-// Caller is responsible for passing a user object it's OK to mutate
-// (Transfer/PayBill build a shallow copy before calling this).
+// Caller is responsible for passing a user object it's OK to mutate,
+// then calling updateUser() afterward to persist it.
 export function recordTransaction(
   user,
   { accountId, description, type, amount, status = "Completed", transferId = null, counterparty = null }
@@ -99,7 +121,7 @@ export function recordTransaction(
     accountId,
     date: new Date().toISOString(),
     description,
-    type, // "credit" | "debit"
+    type,
     amount,
     balanceAfter: newBalance,
     status,
@@ -111,19 +133,19 @@ export function recordTransaction(
   return { user, transaction };
 }
 
-export function setAccountBalance(customerEmail, accountId, newBalance) {
-  const users = getUsers();
-  const userIndex = users.findIndex((u) => u.email === customerEmail);
-  if (userIndex === -1) return null;
+// ---------- ADMIN-FACING WRITES (now Firestore) ----------
 
-  const account = users[userIndex].accounts.find((a) => a.id === accountId);
+export async function setAccountBalance(customerEmail, accountId, newBalance) {
+  const user = await getUserByEmail(customerEmail);
+  if (!user) return null;
+
+  const account = (user.accounts || []).find((a) => a.id === accountId);
   if (!account) return null;
 
   const oldBalance = account.balance;
   const diff = newBalance - oldBalance;
   account.balance = newBalance;
 
-  // Log it as a transaction so it shows up in history/statements
   const transaction = {
     id: generateId("txn"),
     accountId,
@@ -136,23 +158,35 @@ export function setAccountBalance(customerEmail, accountId, newBalance) {
     transferId: null,
     counterparty: "Admin",
   };
-  users[userIndex].transactions = [...(users[userIndex].transactions || []), transaction];
+  user.transactions = [...(user.transactions || []), transaction];
 
-  saveUsers(users);
+  await setDoc(doc(db, "users", customerEmail), user);
 
-  // Keep the logged-in session in sync if this is the currently logged-in user
-  const current = getCurrentUser();
+  const current = await getCurrentUser();
   if (current && current.email === customerEmail) {
-    setCurrentUser(users[userIndex]);
+    setCurrentUser(user);
   }
 
   return account;
 }
 
+export async function toggleAccountStatus(customerEmail, accountId) {
+  const user = await getUserByEmail(customerEmail);
+  if (!user) return null;
+
+  const account = (user.accounts || []).find((a) => a.id === accountId);
+  if (!account) return null;
+
+  account.status = account.status === "Active" ? "Inactive" : "Active";
+  await setDoc(doc(db, "users", customerEmail), user);
+  return account.status;
+}
+
 export function formatCurrency(amount) {
   return `$${Number(amount).toFixed(2)}`;
 }
-// ---------- ADMIN ----------
+
+// ---------- ADMIN (session stays local — credentials are hardcoded, no DB needed) ----------
 
 const ADMIN_SESSION_KEY = "trustlineAdminSession";
 const ADMIN_CREDENTIALS = { username: "admin", password: "admin123" };
@@ -173,8 +207,10 @@ export function adminLogout() {
   localStorage.removeItem(ADMIN_SESSION_KEY);
 }
 
-export function getAllAccountsFlat() {
-  const users = getUsers();
+// ---------- ADMIN READ-HEAVY QUERIES (now Firestore, all async) ----------
+
+export async function getAllAccountsFlat() {
+  const users = await getUsers();
   const rows = [];
   users.forEach((u) => {
     (u.accounts || []).forEach((a) => {
@@ -184,8 +220,8 @@ export function getAllAccountsFlat() {
   return rows;
 }
 
-export function getAllTransactionsFlat() {
-  const users = getUsers();
+export async function getAllTransactionsFlat() {
+  const users = await getUsers();
   const rows = [];
   users.forEach((u) => {
     (u.transactions || []).forEach((t) => {
@@ -195,10 +231,10 @@ export function getAllTransactionsFlat() {
   return rows.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
-export function getSystemStats() {
-  const users = getUsers();
-  const accounts = getAllAccountsFlat();
-  const transactions = getAllTransactionsFlat();
+export async function getSystemStats() {
+  const users = await getUsers();
+  const accounts = await getAllAccountsFlat();
+  const transactions = await getAllTransactionsFlat();
 
   const transfers = transactions.filter((t) => t.transferId);
   const billPayments = transactions.filter((t) => (t.description || "").startsWith("Bill payment"));
@@ -212,21 +248,6 @@ export function getSystemStats() {
     totalDeposits: transactions.filter((t) => t.type === "credit").length,
     totalWithdrawals: transactions.filter((t) => t.type === "debit").length,
   };
-}
-
-export function toggleAccountStatus(customerEmail, accountId) {
-  const users = getUsers();
-  const userIndex = users.findIndex((u) => u.email === customerEmail);
-  if (userIndex === -1) return null;
-
-  const accountIndex = users[userIndex].accounts.findIndex((a) => a.id === accountId);
-  if (accountIndex === -1) return null;
-
-  const current = users[userIndex].accounts[accountIndex].status;
-  users[userIndex].accounts[accountIndex].status = current === "Active" ? "Inactive" : "Active";
-
-  saveUsers(users);
-  return users[userIndex].accounts[accountIndex].status;
 }
 
 export function isSuspicious(transaction) {

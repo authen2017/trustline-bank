@@ -1,6 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { getCurrentUser, updateUser, recordTransaction, generateId, formatCurrency } from "../utils/storage";
+import {
+  getCurrentUser,
+  updateUser,
+  getUserByEmail,
+  findUserByIdentifier,
+  recordTransaction,
+  generateId,
+  formatCurrency,
+} from "../utils/storage";
 
 const FEE_RATE_EXTERNAL = 0.015;
 const MIN_EXTERNAL_FEE = 1;
@@ -12,11 +20,13 @@ function computeFee(transferType, amount) {
 
 function Transfer() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(() => getCurrentUser());
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [step, setStep] = useState("form");
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const [fromAccountId, setFromAccountId] = useState(user?.accounts?.[0]?.id || "");
+  const [fromAccountId, setFromAccountId] = useState("");
   const [transferType, setTransferType] = useState("own");
   const [toAccountId, setToAccountId] = useState("");
   const [beneficiaryId, setBeneficiaryId] = useState("");
@@ -24,10 +34,43 @@ function Transfer() {
   const [description, setDescription] = useState("");
   const [result, setResult] = useState(null);
 
-  if (!user) {
-    navigate("/login");
-    return null;
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUser = async () => {
+      try {
+        const current = await getCurrentUser();
+        if (!isMounted) return;
+
+        if (!current) {
+          navigate("/login");
+          return;
+        }
+        setUser(current);
+        setFromAccountId(current.accounts?.[0]?.id || "");
+      } catch (err) {
+        console.error(err);
+        navigate("/login");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadUser();
+    return () => { isMounted = false; };
+  }, [navigate]);
+
+  if (loading) {
+    return (
+      <div className="content-page">
+        <div className="content-inner">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
   }
+
+  if (!user) return null;
 
   const fromAccount = user.accounts.find((a) => a.id === fromAccountId);
   const otherOwnAccounts = user.accounts.filter((a) => a.id !== fromAccountId);
@@ -62,47 +105,83 @@ function Transfer() {
     setStep("review");
   };
 
-  const handleConfirm = () => {
-    const amt = Number(amount);
-    const transferId = generateId("TRF");
-    let updatedUser = { ...user, accounts: user.accounts.map((a) => ({ ...a })) };
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    setError("");
 
-    const debitResult = recordTransaction(updatedUser, {
-      accountId: fromAccountId,
-      description: description || `Transfer to ${recipientLabel}`,
-      type: "debit",
-      amount: amt + fee,
-      transferId,
-      counterparty: recipientLabel,
-    });
-    updatedUser = debitResult.user;
+    try {
+      const amt = Number(amount);
+      const transferId = generateId("TRF");
 
-    if (transferType === "own") {
-      const creditResult = recordTransaction(updatedUser, {
-        accountId: toAccountId,
-        description: description || `Transfer from ${fromAccount.type} Account`,
-        type: "credit",
-        amount: amt,
+      // Debit the sender's account
+      let senderUser = { ...user, accounts: user.accounts.map((a) => ({ ...a })) };
+      const debitResult = recordTransaction(senderUser, {
+        accountId: fromAccountId,
+        description: description || `Transfer to ${recipientLabel}`,
+        type: "debit",
+        amount: amt + fee,
         transferId,
-        counterparty: `${fromAccount.type} Account (${fromAccount.accountNumber}) — you`,
+        counterparty: recipientLabel,
       });
-      updatedUser = creditResult.user;
+      senderUser = debitResult.user;
+
+      if (transferType === "own") {
+        // Moving money between your own two accounts — credit happens on the same user object
+        const creditResult = recordTransaction(senderUser, {
+          accountId: toAccountId,
+          description: description || `Transfer from ${fromAccount.type} Account`,
+          type: "credit",
+          amount: amt,
+          transferId,
+          counterparty: `${fromAccount.type} Account (${fromAccount.accountNumber}) — you`,
+        });
+        senderUser = creditResult.user;
+      } else {
+        // Transfer to a beneficiary — check if they're a REAL TrustLine customer
+        // by matching the beneficiary's saved account number against real accounts.
+        // If found, credit their account for real. If not (an external/other-bank
+        // beneficiary), the money just leaves your account as a simulated external transfer.
+        const recipientUser = await findUserByIdentifier(beneficiary.accountNumber);
+        if (recipientUser) {
+          const recipientAccount = recipientUser.accounts.find(
+            (a) => a.accountNumber === beneficiary.accountNumber
+          );
+          if (recipientAccount) {
+            let updatedRecipient = { ...recipientUser, accounts: recipientUser.accounts.map((a) => ({ ...a })) };
+            recordTransaction(updatedRecipient, {
+              accountId: recipientAccount.id,
+              description: description || `Transfer from ${fromAccount.type} Account`,
+              type: "credit",
+              amount: amt,
+              transferId,
+              counterparty: `${user.fullName} (${fromAccount.accountNumber})`,
+            });
+            await updateUser(updatedRecipient);
+          }
+        }
+      }
+
+      await updateUser(senderUser);
+      setUser(senderUser);
+
+      setResult({
+        transferId,
+        date: new Date().toISOString(),
+        sender: `${fromAccount.type} Account (${fromAccount.accountNumber})`,
+        recipient: recipientLabel,
+        amount: amt,
+        fee,
+        total,
+        status: "Successful",
+      });
+      setStep("success");
+    } catch (err) {
+      console.error(err);
+      setError("Something went wrong processing the transfer. Please try again.");
+      setStep("form");
+    } finally {
+      setSubmitting(false);
     }
-
-    updateUser(updatedUser);
-    setUser(updatedUser);
-
-    setResult({
-      transferId,
-      date: new Date().toISOString(),
-      sender: `${fromAccount.type} Account (${fromAccount.accountNumber})`,
-      recipient: recipientLabel,
-      amount: amt,
-      fee,
-      total,
-      status: "Successful",
-    });
-    setStep("success");
   };
 
   const handleDownloadReceipt = () => {
@@ -170,8 +249,10 @@ function Transfer() {
             </div>
             {error && <div className="content-error" style={{ marginTop: 16 }}>{error}</div>}
             <div className="button-row" style={{ marginTop: 20 }}>
-              <button className="content-button secondary" onClick={() => setStep("form")}>Back</button>
-              <button className="content-button" onClick={handleConfirm}>Confirm Transfer</button>
+              <button className="content-button secondary" onClick={() => setStep("form")} disabled={submitting}>Back</button>
+              <button className="content-button" onClick={handleConfirm} disabled={submitting}>
+                {submitting ? "Processing..." : "Confirm Transfer"}
+              </button>
             </div>
           </div>
         </div>

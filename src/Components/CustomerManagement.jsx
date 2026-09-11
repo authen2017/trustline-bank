@@ -6,15 +6,28 @@ import { isAdminLoggedIn, getUsers, toggleAccountStatus, formatCurrency } from "
 function CustomerManagement() {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [expandedEmail, setExpandedEmail] = useState(null);
+
+  const loadUsers = async () => {
+    try {
+      const data = await getUsers();
+      setUsers(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!isAdminLoggedIn()) {
       navigate("/admin/login");
       return;
     }
-    setUsers(getUsers());
+    loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const filtered = useMemo(() => {
@@ -28,10 +41,25 @@ function CustomerManagement() {
     );
   }, [users, search]);
 
-  const handleToggle = (email, accountId) => {
-    toggleAccountStatus(email, accountId);
-    setUsers(getUsers());
+  const handleToggle = async (email, accountId) => {
+    try {
+      await toggleAccountStatus(email, accountId);
+      await loadUsers();
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="admin-page">
+        <AdminNav />
+        <div className="admin-content">
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page">

@@ -5,16 +5,34 @@ import { getCurrentUser, logout, getAllTransactions, formatCurrency } from "../u
 function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const current = getCurrentUser();
-    if (!current) {
-      navigate("/login");
-      return;
-    }
-    setUser(current);
+    let isMounted = true;
+
+    const loadUser = async () => {
+      try {
+        const current = await getCurrentUser();
+        if (!isMounted) return;
+
+        if (!current) {
+          navigate("/login");
+          return;
+        }
+        setUser(current);
+      } catch (err) {
+        console.error(err);
+        navigate("/login");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadUser();
+    return () => { isMounted = false; };
   }, [navigate]);
 
+  if (loading) return <div className="dashboard"><p>Loading...</p></div>;
   if (!user) return null;
 
   const totalBalance = (user.accounts || []).reduce((sum, a) => sum + a.balance, 0);
@@ -37,7 +55,7 @@ function Dashboard() {
           <p>Total Balance</p>
           <h2>{formatCurrency(totalBalance)}</h2>
         </div>
-        {user.accounts.map((a) => (
+        {(user.accounts || []).map((a) => (
           <div className="summary-card" key={a.id}>
             <p>{a.type} Account</p>
             <h3>{formatCurrency(a.balance)}</h3>
