@@ -3006,10 +3006,7 @@ footer {
   }
 }
 
-/* ============================================
-   ADDITIONAL RESPONSIVE FIXES — general app
-   (append to the end of App.css)
-   ============================================ */
+/* ADDITIONAL RESPONSIVE FIXES — general app */
 
 @media (max-width: 480px) {
   /* Dashboard header: long full names can collide with the
