@@ -3,7 +3,6 @@ import { useNavigate, Link } from "react-router-dom";
 import {
   getCurrentUser,
   updateUser,
-  getUserByEmail,
   findUserByIdentifier,
   recordTransaction,
   generateId,
