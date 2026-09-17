@@ -1,6 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { findUserByIdentifier, setPendingUser } from "../utils/storage";
+import { findUserByIdentifier, setPendingUser, generateId } from "../utils/storage";
+import { sendOtpEmail } from "../utils/emailService";
+
+function generateOtpCode() {
+  // 6-digit numeric code, e.g. "042917"
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
 function Login() {
   const navigate = useNavigate();
@@ -28,11 +34,30 @@ function Login() {
         localStorage.setItem("trustlineRememberedUser", identifier);
       }
 
-      setPendingUser(user);
+      // Generate a real, random 6-digit code and set it to expire in 5 minutes.
+      const otpCode = generateOtpCode();
+      const otpExpiresAt = Date.now() + 5 * 60 * 1000;
+
+      // Attach the OTP + expiry to the pending user record so OTPVerification
+      // can check against it. This never gets saved to Firestore — it only
+      // lives in this device's localStorage during the login flow.
+      setPendingUser({
+        ...user,
+        _otpCode: otpCode,
+        _otpExpiresAt: otpExpiresAt,
+        _otpId: generateId("otp"),
+      });
+
+      await sendOtpEmail({
+        toEmail: user.email,
+        toName: user.fullName,
+        otpCode,
+      });
+
       navigate("/otp");
     } catch (err) {
       console.error(err);
-      setError("Something went wrong logging in. Please try again.");
+      setError("Something went wrong sending your verification code. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -91,7 +116,7 @@ function Login() {
             </div>
 
             <button type="submit" className="login-button" disabled={loading}>
-              {loading ? "Signing in..." : "Login securely →"}
+              {loading ? "Sending code..." : "Login securely →"}
             </button>
           </form>
 
