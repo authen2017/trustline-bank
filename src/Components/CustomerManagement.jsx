@@ -66,6 +66,7 @@ function CustomerManagement() {
       <AdminNav />
       <div className="admin-content">
         <h2 className="admin-page-title">Customer Management</h2>
+        <div className="admin-underline"></div>
 
         <div className="admin-card">
           <input
@@ -79,21 +80,38 @@ function CustomerManagement() {
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Name</th><th>Email</th><th>Phone</th><th>Accounts</th><th></th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Accounts</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((u) => (
                 <React.Fragment key={u.email}>
                   <tr>
-                    <td>{u.fullName}</td>
-                    <td>{u.email}</td>
-                    <td>{u.phone}</td>
-                    <td>{(u.accounts || []).length}</td>
-                    <td>
+                    <td data-label="Name">
+                      <div className="customer-name-cell">
+                        <div className="customer-avatar">
+                          {u.fullName.charAt(0).toUpperCase()}
+                        </div>
+                        <span>{u.fullName}</span>
+                      </div>
+                    </td>
+                    <td data-label="Email">{u.email}</td>
+                    <td data-label="Phone">{u.phone}</td>
+                    <td data-label="Accounts">
+                      <span className="account-count-pill">
+                        {(u.accounts || []).length}
+                      </span>
+                    </td>
+                    <td data-label="">
                       <button
                         className="btn-link"
-                        onClick={() => setExpandedEmail(expandedEmail === u.email ? null : u.email)}
+                        onClick={() =>
+                          setExpandedEmail(expandedEmail === u.email ? null : u.email)
+                        }
                       >
                         {expandedEmail === u.email ? "Hide" : "View details"}
                       </button>
@@ -104,7 +122,13 @@ function CustomerManagement() {
                       <td colSpan={5}>
                         <table className="admin-subtable">
                           <thead>
-                            <tr><th>Account Type</th><th>Account Number</th><th>Balance</th><th>Status</th><th></th></tr>
+                            <tr>
+                              <th>Account Type</th>
+                              <th>Account Number</th>
+                              <th>Balance</th>
+                              <th>Status</th>
+                              <th></th>
+                            </tr>
                           </thead>
                           <tbody>
                             {(u.accounts || []).map((a) => (
@@ -113,12 +137,19 @@ function CustomerManagement() {
                                 <td>{a.accountNumber}</td>
                                 <td>{formatCurrency(a.balance)}</td>
                                 <td>
-                                  <span className={`status-badge ${a.status === "Active" ? "active" : "inactive"}`}>
+                                  <span
+                                    className={`status-badge ${
+                                      a.status === "Active" ? "active" : "inactive"
+                                    }`}
+                                  >
                                     {a.status}
                                   </span>
                                 </td>
                                 <td>
-                                  <button className="btn-link" onClick={() => handleToggle(u.email, a.id)}>
+                                  <button
+                                    className="btn-link"
+                                    onClick={() => handleToggle(u.email, a.id)}
+                                  >
                                     {a.status === "Active" ? "Deactivate" : "Activate"}
                                   </button>
                                 </td>
@@ -132,7 +163,11 @@ function CustomerManagement() {
                 </React.Fragment>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={5} className="admin-empty">No customers match your search.</td></tr>
+                <tr>
+                  <td colSpan={5} className="admin-empty">
+                    No customers match your search.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

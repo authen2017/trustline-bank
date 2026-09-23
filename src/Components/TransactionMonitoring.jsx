@@ -65,48 +65,85 @@ function TransactionMonitoring() {
       <AdminNav />
       <div className="admin-content">
         <h2 className="admin-page-title">Transaction Monitoring</h2>
+        <div className="admin-underline"></div>
 
         <div className="admin-card">
           <div className="admin-filters-row">
             <input
               type="text"
-              className="admin-search"
+              className="admin-search admin-search-flex"
               placeholder="Search by ID, customer, or description..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+            <select
+              className="admin-select"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
               <option value="all">All types</option>
               <option value="credit">Deposits</option>
               <option value="debit">Withdrawals</option>
             </select>
             <label className="admin-checkbox-label">
-              <input type="checkbox" checked={flagOnly} onChange={(e) => setFlagOnly(e.target.checked)} />
-              Flagged only (≥ $5,000)
+              <input
+                type="checkbox"
+                checked={flagOnly}
+                onChange={(e) => setFlagOnly(e.target.checked)}
+              />
+              <span>Flagged only (≥ $5,000)</span>
             </label>
           </div>
 
-          <table className="admin-table">
+          <table className="admin-table admin-table-transactions">
             <thead>
               <tr>
-                <th>Transaction ID</th><th>Customer</th><th>Type</th><th>Amount</th><th>Date</th><th>Status</th>
+                <th>Transaction ID</th>
+                <th>Customer</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Status</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((t) => (
                 <tr key={t.id} className={isSuspicious(t) ? "admin-row-flagged" : ""}>
-                  <td>{t.id} {isSuspicious(t) && <span className="flag-badge">⚠ Review</span>}</td>
-                  <td>{t.customerName}</td>
-                  <td className={t.type === "credit" ? "amount-credit" : "amount-debit"}>
-                    {t.type === "credit" ? "Deposit" : "Withdrawal"}
+                  <td data-label="Transaction ID">
+                    <div className="txn-id-cell">
+                      <span className="txn-id">{t.id}</span>
+                      {isSuspicious(t) && <span className="flag-badge">⚠ Review</span>}
+                    </div>
                   </td>
-                  <td>{formatCurrency(t.amount)}</td>
-                  <td>{new Date(t.date).toLocaleString()}</td>
-                  <td>{t.status}</td>
+                  <td data-label="Customer">{t.customerName}</td>
+                  <td data-label="Type">
+                    <span
+                      className={`txn-type-pill ${
+                        t.type === "credit" ? "txn-type-credit" : "txn-type-debit"
+                      }`}
+                    >
+                      {t.type === "credit" ? "Deposit" : "Withdrawal"}
+                    </span>
+                  </td>
+                  <td
+                    data-label="Amount"
+                    className={t.type === "credit" ? "amount-credit" : "amount-debit"}
+                  >
+                    {t.type === "credit" ? "+" : "−"}
+                    {formatCurrency(t.amount)}
+                  </td>
+                  <td data-label="Date">{new Date(t.date).toLocaleString()}</td>
+                  <td data-label="Status">
+                    <span className="status-badge active">{t.status}</span>
+                  </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="admin-empty">No transactions match your filters.</td></tr>
+                <tr>
+                  <td colSpan={6} className="admin-empty">
+                    No transactions match your filters.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

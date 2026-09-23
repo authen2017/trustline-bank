@@ -699,16 +699,15 @@ footer {
 }
 
 /* OTP PAGE */
-
 .otp-page {
   min-height: 100vh;
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 40px 20px;
   background:
-    linear-gradient(rgba(3, 25, 45, 0.72), rgba(3, 25, 45, 0.72)),
+    linear-gradient(rgba(3, 25, 45, 0.75), rgba(3, 25, 45, 0.75)),
     url("../public/cash.png");
   background-size: cover;
   background-position: center;
@@ -719,22 +718,22 @@ footer {
   width: 100%;
   max-width: 420px;
   background: rgba(255, 255, 255, 0.98);
-  padding: 40px;
+  padding: 44px 36px;
   border-radius: 18px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
   text-align: center;
 }
 
 .otp-icon {
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 18px;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 20px;
   border-radius: 50%;
   background: #eaf1f8;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 26px;
   color: #0b4a7a;
 }
 
@@ -748,66 +747,11 @@ footer {
   color: #7b8792;
   font-size: 14px;
   line-height: 1.6;
-  margin-bottom: 28px;
-}
-
-.otp-form {
-  display: flex;
-  flex-direction: column;
-}
-
-.otp-form label {
-  text-align: left;
-  margin-bottom: 8px;
-  color: #243746;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.otp-input {
-  width: 100%;
-  height: 56px;
-  padding: 0 14px;
-  margin-bottom: 22px;
-  border: 1px solid #d5dde5;
-  border-radius: 8px;
-  background: #f8fafc;
-  color: #243746;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 8px;
-  text-align: center;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.otp-input:focus {
-  border-color: #0b4a7a;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(11, 74, 122, 0.1);
-}
-
-.otp-button {
-  width: 100%;
-  height: 50px;
-  border: none;
-  border-radius: 8px;
-  background: #f5b942;
-  color: #1a1a1a;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.otp-button:hover {
-  background: #e6a92f;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  margin: 0 0 28px;
 }
 
 .otp-error {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
   padding: 11px 13px;
   border-radius: 7px;
   background: #fff0f0;
@@ -816,8 +760,49 @@ footer {
   text-align: left;
 }
 
+/* Digit boxes */
+.otp-digit-row {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 8px 0 26px;
+}
+
+.otp-digit-input {
+  flex: 1 1 0;
+  max-width: 48px;
+  height: 56px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #243746;
+  border: 1.5px solid #d5dde5;
+  border-radius: 8px;
+  background: #f8fafc;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.otp-digit-input:focus {
+  border-color: #0b4a7a;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(11, 74, 122, 0.15);
+}
+
+.otp-digit-input:disabled {
+  opacity: 0.6;
+}
+
+.otp-hint {
+  margin-top: -10px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: #a3aeb8;
+}
+
 .otp-resend {
-  margin-top: 22px;
+  margin-top: 4px;
   color: #6f7c87;
   font-size: 13px;
 }
@@ -836,10 +821,18 @@ footer {
   text-decoration: underline;
 }
 
-.otp-hint {
-  margin-top: 16px;
-  font-size: 12px;
-  color: #a3aeb8;
+@media (max-width: 420px) {
+  .otp-card {
+    padding: 32px 20px;
+  }
+  .otp-digit-row {
+    gap: 6px;
+  }
+  .otp-digit-input {
+    max-width: 40px;
+    height: 48px;
+    font-size: 18px;
+  }
 }
 
 /* DASHBOARD */
@@ -3006,6 +2999,252 @@ footer {
   }
 }
 
+/* ============ ADMIN PAGE LAYOUT ============ */
+
+.admin-page {
+  min-height: 100vh;
+  background:
+    linear-gradient(rgba(3, 25, 45, 0.75), rgba(3, 25, 45, 0.75)),
+    url("../public/cash.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.admin-content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.admin-page-title {
+  color: #fff;
+  font-size: 32px;
+  margin: 0 0 10px;
+}
+
+.admin-underline {
+  width: 60px;
+  height: 4px;
+  background: #f5b942;
+  border-radius: 2px;
+  margin-bottom: 32px;
+}
+
+/* ============ CARD WRAPPER ============ */
+
+.admin-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* ============ SEARCH BAR ============ */
+
+.admin-search {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #243746;
+  margin-bottom: 24px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.admin-search:focus {
+  border-color: #0b4a7a;
+  box-shadow: 0 0 0 3px rgba(11, 74, 122, 0.12);
+}
+
+.admin-search::placeholder {
+  color: #a3aeb8;
+}
+
+/* ============ TABLE ============ */
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.admin-table thead th {
+  text-align: left;
+  padding: 12px 16px;
+  color: #7b8792;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  border-bottom: 2px solid #eef1f4;
+}
+
+.admin-table tbody tr {
+  border-bottom: 1px solid #f1f4f7;
+  transition: background 0.12s ease;
+}
+
+.admin-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.admin-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.admin-table td {
+  padding: 16px;
+  vertical-align: middle;
+}
+
+.admin-empty {
+  text-align: center;
+  color: #a3aeb8;
+  padding: 32px 16px !important;
+  font-size: 14px;
+}
+
+/* ============ CUSTOMER NAME + AVATAR ============ */
+
+.customer-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.customer-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #0b3d6b;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ============ ACCOUNT COUNT PILL ============ */
+
+.account-count-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  padding: 3px 10px;
+  background: #eef5fa;
+  color: #0b3d6b;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* ============ SUBTABLE (account details) ============ */
+
+.admin-subtable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: #f8fafc;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.admin-subtable thead th {
+  text-align: left;
+  padding: 10px 14px;
+  color: #7b8792;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: #eef1f4;
+}
+
+.admin-subtable td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #eef1f4;
+}
+
+.admin-subtable tr:last-child td {
+  border-bottom: none;
+}
+
+/* ============ STATUS BADGE ============ */
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.status-badge.active {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.status-badge.inactive {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ============ LINK-STYLE BUTTON ============ */
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #0b4a7a;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
+}
+
+/* ============ RESPONSIVE TABLE ============ */
+
+@media (max-width: 700px) {
+  .admin-table thead {
+    display: none;
+  }
+  .admin-table,
+  .admin-table tbody,
+  .admin-table tr,
+  .admin-table td {
+    display: block;
+    width: 100%;
+  }
+  .admin-table tbody tr {
+    padding: 14px 0;
+    border-bottom: 1px solid #eef1f4;
+  }
+  .admin-table td {
+    padding: 4px 0;
+  }
+  .admin-table td::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 10px;
+    color: #a3aeb8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .admin-table td[data-label=""]::before {
+    content: none;
+  }
+}
 /* ADDITIONAL RESPONSIVE FIXES — general app */
 
 @media (max-width: 480px) {
@@ -3055,4 +3294,145 @@ footer {
 img {
   max-width: 100%;
   height: auto;
+}
+
+/* ============ FILTERS ROW ============ */
+
+.admin-filters-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.admin-search-flex {
+  flex: 1 1 260px;
+  margin-bottom: 0;
+}
+
+.admin-select {
+  padding: 12px 16px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #243746;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.admin-select:focus {
+  border-color: #0b4a7a;
+}
+
+.admin-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #526270;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.admin-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #0b4a7a;
+  cursor: pointer;
+}
+
+/* ============ TRANSACTION ID CELL ============ */
+
+.txn-id-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.txn-id {
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12px;
+  color: #526270;
+}
+
+.flag-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: #fef2f2;
+  color: #dc2626;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* ============ TYPE PILL ============ */
+
+.txn-type-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.txn-type-credit {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.txn-type-debit {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ============ AMOUNT COLUMN ============ */
+
+.admin-table-transactions td.amount-credit,
+.admin-table-transactions td.amount-debit {
+  font-weight: 700;
+  font-size: 14px;
+  text-align: right;
+}
+
+.admin-table-transactions td.amount-credit {
+  color: #16a34a;
+}
+
+.admin-table-transactions td.amount-debit {
+  color: #dc2626;
+}
+
+.admin-table-transactions th:nth-child(4) {
+  text-align: right;
+}
+
+/* ============ FLAGGED ROW HIGHLIGHT ============ */
+
+.admin-row-flagged {
+  background: #fffaf2;
+}
+
+.admin-row-flagged:hover {
+  background: #fef3e2 !important;
+}
+
+/* ============ RESPONSIVE: keep amount right-aligned on mobile ============ */
+
+@media (max-width: 700px) {
+  .admin-table-transactions td.amount-credit,
+  .admin-table-transactions td.amount-debit {
+    text-align: left;
+  }
+  .admin-filters-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
